@@ -188,3 +188,41 @@ main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
   .ock-nav { padding: 0 16px; }
   .ock-nav .nav-links { display: none; }
 }
+
+/* ===== 数据表格组件（数据类工具页共用） ===== */
+.dt-toolbar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px;
+}
+.dt-toolbar input[type="search"], .dt-toolbar select {
+  padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+  font-size: 14px; background: #fff; color: var(--text); outline: none;
+}
+.dt-toolbar input[type="search"] { flex: 1 1 240px; min-width: 200px; }
+.dt-toolbar input:focus, .dt-toolbar select:focus { border-color: var(--primary); }
+.dt-count { font-size: 13px; color: var(--muted); }
+
+.dt-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+.dt-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dt-table th, .dt-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+.dt-table thead th { background: var(--primary-light); color: var(--primary); font-weight: 600; white-space: nowrap; position: sticky; top: 0; }
+.dt-table tbody tr:hover { background: #f5f8fb; }
+.dt-table .hs { font-family: ui-monospace, Menlo, Consolas, monospace; white-space: nowrap; }
+.dt-table .rate-gen { font-weight: 600; color: #b42318; white-space: nowrap; }
+.dt-table .rate-wto { font-weight: 600; color: #027a48; white-space: nowrap; }
+.dt-table .rate-na { color: var(--muted); font-size: 12px; }
+.dt-table .desc-en { color: var(--muted); font-size: 12px; display: block; margin-top: 2px; }
+.dt-table td a { color: var(--primary); text-decoration: none; }
+.dt-table td a:hover { text-decoration: underline; }
+.dt-empty { padding: 40px; text-align: center; color: var(--muted); }
+
+.dt-pager { display: flex; gap: 8px; justify-content: center; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.dt-pager button {
+  padding: 6px 14px; border: 1px solid var(--border); background: #fff;
+  border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text);
+}
+.dt-pager button:disabled { opacity: .4; cursor: not-allowed; }
+.dt-pager button:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.dt-pager .pn { font-size: 13px; color: var(--muted); }
+
+.dt-legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.dt-legend b { color: var(--text); font-weight: 600; }

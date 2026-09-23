@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日本进口关税查询（2026版） — LogiKit</title>
+<meta name="description" content="日本海关 2026 版进口关税表全文检索，5611 条 HS 编码，含中文品名、一般税率与 WTO 协定税率，逐条可跳官网核对。">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div id="nav-mount"></div>
+
+<main class="tool-page">
+  <h1>日本进口关税查询（2026 版）</h1>
+  <p class="sub">按 HS 编码或中英文品名检索日本海关税率表，每条记录均可跳转日本海关官网原文核对</p>
+
+  <div class="tool-panel">
+    <div class="dt-legend">
+      <span><b>数据源</b> 日本海关 customs.go.jp 2026.04.01 版</span>
+      <span><b>数据量</b> <span id="mTotal">—</span> 条 / <span id="mChapters">—</span> 章</span>
+      <span><b>生成时间</b> <span id="mGen">—</span></span>
+    </div>
+
+    <div class="dt-toolbar">
+      <input type="search" id="q" placeholder="输入 HS 编码（如 8517）或品名关键词（如 锂电池 / lithium）" autocomplete="off">
+      <select id="chapter"><option value="">全部章节</option></select>
+      <select id="mode">
+        <option value="all">全部匹配</option>
+        <option value="hs">仅 HS 编码</option>
+        <option value="kw">仅品名关键词</option>
+      </select>
+      <span class="dt-count" id="count">—</span>
+    </div>
+
+    <div class="dt-wrap">
+      <table class="dt-table">
+        <thead>
+          <tr>
+            <th>HS 编码</th>
+            <th>商品名称</th>
+            <th>一般税率</th>
+            <th>WTO 税率</th>
+            <th>原文</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="dt-pager">
+      <button id="prev">上一页</button>
+      <span class="pn" id="pn">—</span>
+      <button id="next">下一页</button>
+    </div>
+
+    <div class="data-source-note">
+      数据由 <code>etl/etl_jp_tariff.py</code> 从日本海关官方关税表生成，离线打包、断网可用。
+      部分行因原表多级税率结构（从量税／复合税）无法解析为单一百分比，标注为「需查原表」，请点击「原文」链接在日本海关官网确认，本工具不对该部分数据做推测。
+    </div>
+  </div>
+</main>
+
+<div id="footer-mount"></div>
+<script src="../data/JP_TARIFF.js"></script>
+<script src="../assets/js/nav.js"></script>
+<script>
+(function () {
+  if (typeof JP_TARIFF === 'undefined') {
+    document.getElementById('tbody').innerHTML =
+      '<tr><td colspan="5" class="dt-empty">数据文件未加载：请确认 data/JP_TARIFF.js 存在（运行 python3 etl/etl_jp_tariff.py 生成）</td></tr>';
+    return;
+  }
+
+  var META = JP_TARIFF.meta, ROWS = JP_TARIFF.rows, CH = JP_TARIFF.chapters;
+  var PAGE_SIZE = 50, page = 0, filtered = [];
+
+  document.getElementById('mTotal').textContent = META.total;
+  document.getElementById('mChapters').textContent = META.chapters;
+  document.getElementById('mGen').textContent = META.generated_at;
+
+  // 章节下拉
+  var sel = document.getElementById('chapter');
+  Object.keys(CH).map(Number).sort(function (a, b) { return a - b; }).forEach(function (n) {
+    var o = document.createElement('option');
+    o.value = n;
+    o.textContent = '第' + (n < 10 ? '0' + n : n) + '章 · ' + CH[String(n)];
+    sel.appendChild(o);
+  });
+
+  function officialUrl(row) {
+    var n = row[7];
+    return META.source_url.replace('index.htm', 'data/e_' + (n < 10 ? '0' + n : n) + '.htm');
+  }
+
+  function cellRate(v, raw) {
+    if (v) {
+      return '<span class="rate-' + (arguments[2] || 'gen') + '">' + v + '</span>';
+    }
+    if (!raw) return '<span class="rate-na">—</span>';
+    return '<span class="rate-na" title="' + raw.replace(/"/g, '&quot;') + '">需查原表</span>';
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function match(row, q, mode) {
+    if (!q) return true;
+    if (/^[0-9.]+$/.test(q) && mode !== 'kw') {
+      return row[0].indexOf(q.replace(/\./g, '')) === 0;
+    }
+    if (mode === 'hs') return row[0].indexOf(q.replace(/\./g, '')) === 0;
+    return row[2].indexOf(q) >= 0 || row[3].toLowerCase().indexOf(q) >= 0;
+  }
+
+  function search() {
+    var raw = document.getElementById('q').value.trim();
+    var q = raw.replace(/\./g, '');
+    var ch = document.getElementById('chapter').value;
+    var mode = document.getElementById('mode').value;
+
+    filtered = [];
+    for (var i = 0; i < ROWS.length; i++) {
+      var r = ROWS[i];
+      if (ch && String(r[7]) !== ch) continue;
+      if (!match(r, q, mode)) continue;
+      filtered.push(r);
+      if (filtered.length >= 3000) break; // 渲染上限，保护浏览器
+    }
+    page = 0;
+    document.getElementById('count').textContent =
+      '命中 ' + filtered.length + ' 条' + (filtered.length >= 3000 ? '（已截断至前 3000 条，请细化关键词）' : '');
+    render();
+  }
+
+  function render() {
+    var tb = document.getElementById('tbody');
+    if (!filtered.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="dt-empty">没有匹配的记录，换个关键词试试</td></tr>';
+      document.getElementById('pn').textContent = '0 / 0';
+      return;
+    }
+    var start = page * PAGE_SIZE;
+    var slice = filtered.slice(start, start + PAGE_SIZE);
+    var html = '';
+    for (var i = 0; i < slice.length; i++) {
+      var r = slice[i];
+      html += '<tr>'
+        + '<td class="hs">' + esc(r[1]) + '</td>'
+        + '<td>' + esc(r[2]) + '<span class="desc-en">' + esc(r[3]) + '</span></td>'
+        + '<td>' + (r[4] ? '<span class="rate-gen">' + esc(r[4]) + '</span>'
+                        : '<span class="rate-na" title="' + esc(r[6]) + '">需查原表</span>') + '</td>'
+        + '<td>' + (r[5] ? '<span class="rate-wto">' + esc(r[5]) + '</span>'
+                        : '<span class="rate-na">—</span>') + '</td>'
+        + '<td><a href="' + officialUrl(r) + '" target="_blank" rel="noopener">日本海关 ↗</a></td>'
+        + '</tr>';
+    }
+    tb.innerHTML = html;
+    var pages = Math.ceil(filtered.length / PAGE_SIZE);
+    document.getElementById('pn').textContent = '第 ' + (page + 1) + ' / ' + pages + ' 页';
+    document.getElementById('prev').disabled = (page === 0);
+    document.getElementById('next').disabled = (page >= pages - 1);
+  }
+
+  document.getElementById('q').addEventListener('input', search);
+  document.getElementById('chapter').addEventListener('change', search);
+  document.getElementById('mode').addEventListener('change', search);
+  document.getElementById('prev').addEventListener('click', function () { if (page > 0) { page--; render(); } });
+  document.getElementById('next').addEventListener('click', function () {
+    if (page < Math.ceil(filtered.length / PAGE_SIZE) - 1) { page++; render(); }
+  });
+
+  search(); // 首屏默认展示全部
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>汇率换算 — LogiKit</title>
+<meta name="description" content="基于欧洲央行每日参考汇率的离线汇率换算器，30 个币种任意交叉换算，含全表对照。">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div id="nav-mount"></div>
+
+<main class="tool-page">
+  <h1>汇率换算</h1>
+  <p class="sub">欧洲央行（ECB）每日参考汇率 · 由 ETL 烘焙为静态数据，断网可用</p>
+
+  <div class="tool-panel">
+    <div class="dt-legend">
+      <span><b>汇率日期</b> <span id="mDate">—</span></span>
+      <span><b>覆盖币种</b> <span id="mCount">—</span> 个</span>
+      <span><b>生成时间</b> <span id="mGen">—</span></span>
+    </div>
+
+    <div class="form-row">
+      <div style="flex:2 1 160px">
+        <label>金额</label>
+        <input type="number" id="amt" value="10000" min="0" step="0.01">
+      </div>
+      <div>
+        <label>从</label>
+        <select id="from"></select>
+      </div>
+      <div>
+        <label>到</label>
+        <select id="to"></select>
+      </div>
+      <div style="flex:0 0 auto; display:flex; align-items:flex-end">
+        <button class="btn secondary" id="swap" style="padding:9px 14px">⇄ 互换</button>
+      </div>
+    </div>
+
+    <div class="result-box show" id="result">
+      <div class="r-main" id="rMain">—</div>
+      <div class="r-detail" id="rDetail">—</div>
+    </div>
+
+    <h3 style="margin:26px 0 10px; font-size:15px">全部币种对照（1 <span id="baseLabel">CNY</span> = ?）</h3>
+    <div class="dt-toolbar">
+      <select id="base"></select>
+      <span class="dt-count">以所选币种为 1 单位，列出其余币种折算值</span>
+    </div>
+    <div class="dt-wrap">
+      <table class="dt-table">
+        <thead><tr><th>币种</th><th>名称</th><th>1 单位 = </th><th>反向（1 外币 = 本币）</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="data-source-note">
+      数据生成脚本：<code>etl/etl_forex.py</code>；源接口 <code>api.frankfurter.dev</code>（欧洲央行 ECB 官方每日参考汇率，免费、无密钥）。
+      交叉汇率以欧元为基准在页面本地换算，与银行实际结汇价存在点差，计费请以银行成交价为准。
+    </div>
+  </div>
+</main>
+
+<div id="footer-mount"></div>
+<script src="../data/FOREX_SNAPSHOT.js"></script>
+<script src="../assets/js/nav.js"></script>
+<script>
+(function () {
+  if (typeof FOREX_SNAPSHOT === 'undefined') {
+    document.getElementById('rMain').textContent = '数据未加载：请运行 python3 etl/etl_forex.py';
+    return;
+  }
+  var META = FOREX_SNAPSHOT.meta, R = FOREX_SNAPSHOT.rates,
+      NAMES = FOREX_SNAPSHOT.names, CODES = FOREX_SNAPSHOT.codes;
+
+  document.getElementById('mDate').textContent = META.date;
+  document.getElementById('mCount').textContent = META.count;
+  document.getElementById('mGen').textContent = META.generated_at;
+
+  function fill(sel, pick) {
+    CODES.forEach(function (c) {
+      var o = document.createElement('option');
+      o.value = c; o.textContent = c + ' · ' + (NAMES[c] || c);
+      sel.appendChild(o);
+    });
+    if (pick) sel.value = pick;
+  }
+  var from = document.getElementById('from'), to = document.getElementById('to'),
+      base = document.getElementById('base');
+  fill(from, 'CNY'); fill(to, 'USD'); fill(base, 'CNY');
+
+  // 任意交叉：经 EUR 中转。rates 全部以 EUR 为基准：1 EUR = n XXX
+  function convert(amount, a, b) {
+    return amount * (R[b] / R[a]);
+  }
+
+  function fmt(v) {
+    if (Math.abs(v) >= 1000) return v.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    if (Math.abs(v) >= 1) return v.toFixed(4);
+    if (Math.abs(v) >= 0.0001) return v.toFixed(6);
+    return v.toExponential(4);
+  }
+
+  function doConvert() {
+    var a = parseFloat(document.getElementById('amt').value) || 0;
+    var f = from.value, t = to.value;
+    var out = convert(a, f, t);
+    var unit = convert(1, f, t);
+    document.getElementById('rMain').textContent = fmt(out) + ' ' + t;
+    document.getElementById('rDetail').textContent =
+      fmt(a) + ' ' + f + '（' + (NAMES[f] || f) + '）→ ' +
+      fmt(out) + ' ' + t + '（' + (NAMES[t] || t) + '）｜ 汇率 1 ' + f + ' = ' + fmt(unit) + ' ' + t;
+  }
+
+  function renderTable() {
+    var b = base.value, tb = document.getElementById('tbody'), html = '';
+    document.getElementById('baseLabel').textContent = b;
+    CODES.forEach(function (c) {
+      if (c === b) return;
+      html += '<tr><td class="hs">' + c + '</td><td>' + (NAMES[c] || c) + '</td>'
+        + '<td>' + fmt(convert(1, b, c)) + ' ' + c + '</td>'
+        + '<td>' + fmt(convert(1, c, b)) + ' ' + b + '</td></tr>';
+    });
+    tb.innerHTML = html;
+  }
+
+  ['amt', 'from', 'to'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', doConvert);
+  });
+  document.getElementById('swap').addEventListener('click', function () {
+    var v = from.value; from.value = to.value; to.value = v; doConvert();
+  });
+  base.addEventListener('change', renderTable);
+
+  doConvert();
+  renderTable();
+})();
+</script>
+</body>
+</html>
