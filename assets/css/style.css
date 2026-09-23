@@ -1,0 +1,190 @@
+/* OneCargoKit Clone — 统一样式 v0.1
+   设计原则：简洁、扁平、移动端兼容、离线可用 */
+
+:root {
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --primary: #0f4c81;
+  --primary-light: #e8f0f8;
+  --text: #1a2332;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --radius: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* 顶部导航（由 nav.js 注入占位） */
+.ock-nav {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.ock-nav .logo {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--primary);
+  text-decoration: none;
+}
+.ock-nav .nav-links { display: flex; gap: 20px; }
+.ock-nav .nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+}
+.ock-nav .nav-links a:hover { color: var(--primary); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
+
+.hero { text-align: center; padding: 40px 0 32px; }
+.hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.hero p { color: var(--muted); font-size: 15px; }
+.hero .badge {
+  display: inline-block;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 12px;
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+}
+
+/* 工具分类 */
+.cat-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 32px 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cat-title .count {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.tool-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color .15s, transform .15s;
+}
+.tool-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.tool-card .t-name { font-size: 15px; font-weight: 600; }
+.tool-card .t-desc { font-size: 13px; color: var(--muted); }
+.tool-card .t-tags { display: flex; gap: 6px; margin-top: 4px; }
+.tool-card .tag {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.tool-card .tag.new { background: #fef3e2; color: #b45309; }
+
+/* 页脚（由 nav.js 注入） */
+.ock-footer {
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.ock-footer .data-note { margin-top: 6px; font-size: 12px; }
+
+/* ============ 工具页通用 ============ */
+.tool-page h1 { font-size: 22px; margin-bottom: 4px; }
+.tool-page .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+.tool-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 720px;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.form-row label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+.form-row input, .form-row select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--card);
+}
+.form-row input:focus, .form-row select:focus { outline: none; border-color: var(--primary); }
+
+.btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn:hover { opacity: .9; }
+.btn.secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+
+.result-box {
+  margin-top: 20px;
+  background: var(--primary-light);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: none;
+}
+.result-box.show { display: block; }
+.result-box .r-main { font-size: 26px; font-weight: 700; color: var(--primary); }
+.result-box .r-detail { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+.data-source-note {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px dashed var(--border);
+  padding-top: 12px;
+}
+
+@media (max-width: 600px) {
+  main { padding: 20px 16px 48px; }
+  .hero h1 { font-size: 22px; }
+  .ock-nav { padding: 0 16px; }
+  .ock-nav .nav-links { display: none; }
+}

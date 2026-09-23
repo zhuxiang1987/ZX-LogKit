@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>计费重计算 — LogiKit</title>
+<meta name="description" content="空运/海运/快递/公路计费重计算器，输入尺寸毛重一步对比四种运输方式。">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div id="nav-mount"></div>
+
+<main class="tool-page">
+  <h1>计费重计算</h1>
+  <p class="sub">输入单件货物尺寸与毛重，自动对比四种运输方式的计费重</p>
+
+  <div class="tool-panel">
+    <div class="form-row">
+      <div>
+        <label>长 (cm)</label>
+        <input type="number" id="len" value="120" min="0" step="0.1">
+      </div>
+      <div>
+        <label>宽 (cm)</label>
+        <input type="number" id="wid" value="80" min="0" step="0.1">
+      </div>
+      <div>
+        <label>高 (cm)</label>
+        <input type="number" id="hgt" value="100" min="0" step="0.1">
+      </div>
+      <div>
+        <label>毛重 (kg)</label>
+        <input type="number" id="wt" value="150" min="0" step="0.1">
+      </div>
+      <div>
+        <label>件数</label>
+        <input type="number" id="qty" value="1" min="1" step="1">
+      </div>
+    </div>
+    <button class="btn" id="calc">计算</button>
+
+    <div class="result-box" id="result">
+      <div class="r-main" id="rMain"></div>
+      <div class="r-detail" id="rDetail"></div>
+    </div>
+
+    <div class="data-source-note"></div>
+  </div>
+</main>
+
+<div id="footer-mount"></div>
+<script src="../assets/js/nav.js"></script>
+<script>
+// 体积重换算系数（行业通用标准）
+var MODES = [
+  { name: '空运',      div: 6000, note: 'IATA 1:6000' },
+  { name: '快递',      div: 5000, note: '四大快递通用 1:5000' },
+  { name: '海运拼箱',  div: 1000, note: '1 m³ = 1000 kg' },
+  { name: '欧洲公路',  div: 3000, note: '欧标 1:3000' }
+];
+
+function calc() {
+  var l = +document.getElementById('len').value || 0,
+      w = +document.getElementById('wid').value || 0,
+      h = +document.getElementById('hgt').value || 0,
+      gw = +document.getElementById('wt').value || 0,
+      q = Math.max(1, +document.getElementById('qty').value || 1);
+
+  if (!l || !w || !h || !gw) { alert('请填写完整的尺寸和毛重'); return; }
+
+  var volPer = l * w * h / 1e6;                 // 单件体积 m³
+  var totalGW = gw * q, totalVol = volPer * q;  // 合计毛重 / 合计体积
+  var lines = [];
+
+  MODES.forEach(function (m) {
+    var volW = totalVol * 1e6 / m.div;          // 该方式的体积重
+    var cw = Math.max(totalGW, volW);           // 计费重 = max(毛重, 体积重)
+    lines.push(m.name + '：' + cw.toFixed(1) + ' kg（体积重 ' + volW.toFixed(1) + '，' + m.note + '）');
+  });
+
+  document.getElementById('rMain').textContent =
+    '总体积 ' + totalVol.toFixed(3) + ' m³ · 总毛重 ' + totalGW.toFixed(1) + ' kg';
+  document.getElementById('rDetail').innerHTML = lines.join('<br>');
+  document.getElementById('result').classList.add('show');
+}
+
+document.getElementById('calc').addEventListener('click', calc);
+calc(); // 首次自动计算，便于用户直接看到效果
+
+window.ockSetSource && window.ockSetSource('体积重换算系数为行业通用标准（IATA 1:6000 / 快递 1:5000 / 海运 1:1000 / 欧标 1:3000），实际以承运商公布为准');
+</script>
+</body>
+</html>
