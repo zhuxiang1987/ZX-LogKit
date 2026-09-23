@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>增值税计算器 — ZX-LogKit</title>
+<meta name="description" content="增值税正向/逆向计算，含价外税、不含价拆解与快速税率预设。">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div id="nav-mount"></div>
+
+<main class="tool-page">
+  <h1>增值税计算器</h1>
+  <p class="sub">支持正向加税、逆向拆税，中国主要税率一键预设</p>
+
+  <div class="tool-panel">
+    <div class="form-row">
+      <div>
+        <label>计算方式</label>
+        <select id="dir">
+          <option value="fwd">正向：不含税 → 含税</option>
+          <option value="rev">逆向：含税 → 不含税</option>
+        </select>
+      </div>
+      <div>
+        <label>税率</label>
+        <select id="preset">
+          <option value="13">增值税 13%（一般货物）</option>
+          <option value="9">增值税 9%（运输/建筑等）</option>
+          <option value="6">增值税 6%（现代服务）</option>
+          <option value="3">征收率 3%（小规模纳税人）</option>
+          <option value="19">德国 VAT 19%</option>
+          <option value="21">荷兰 VAT 21%</option>
+          <option value="20">英国 VAT 20%</option>
+          <option value="10">日本 消费税 10%</option>
+          <option value="custom">自定义…</option>
+        </select>
+      </div>
+      <div id="customWrap" style="display:none">
+        <label>自定义税率 (%)</label>
+        <input type="number" id="custom" value="13" step="0.01">
+      </div>
+      <div>
+        <label id="amountLabel">不含税金额</label>
+        <input type="number" id="amount" value="10000" step="0.01">
+      </div>
+    </div>
+    <button class="btn" id="calc">计算</button>
+
+    <div class="result-box show">
+      <div class="r-main" id="rMain"></div>
+      <div class="r-detail" id="rDetail"></div>
+    </div>
+
+    <div class="data-source-note"></div>
+  </div>
+</main>
+
+<div id="footer-mount"></div>
+<script src="../assets/js/nav.js"></script>
+<script>
+function rate() {
+  var p = document.getElementById('preset').value;
+  return p === 'custom' ? (parseFloat(document.getElementById('custom').value) || 0) : parseFloat(p);
+}
+
+function calc() {
+  var dir = document.getElementById('dir').value;
+  var r = rate() / 100;
+  var amt = parseFloat(document.getElementById('amount').value) || 0;
+  var net, vat, gross;
+
+  if (dir === 'fwd') {
+    net = amt; vat = net * r; gross = net + vat;
+    document.getElementById('rMain').textContent = '含税价：' + gross.toFixed(2);
+    document.getElementById('rDetail').innerHTML =
+      '不含税金额：' + net.toFixed(2) + '<br>' +
+      '税率：' + (r * 100).toFixed(2) + '%<br>' +
+      '增值税额：' + vat.toFixed(2);
+  } else {
+    gross = amt; net = gross / (1 + r); vat = gross - net;
+    document.getElementById('rMain').textContent = '不含税价：' + net.toFixed(2);
+    document.getElementById('rDetail').innerHTML =
+      '含税金额：' + gross.toFixed(2) + '<br>' +
+      '税率：' + (r * 100).toFixed(2) + '%<br>' +
+      '其中税额：' + vat.toFixed(2) + '<br>' +
+      '<span style="color:#64748b">计算式：含税价 ÷ (1+' + r.toFixed(4) + ')</span>';
+  }
+}
+
+document.getElementById('preset').addEventListener('change', function () {
+  document.getElementById('customWrap').style.display = this.value === 'custom' ? '' : 'none';
+  calc();
+});
+document.getElementById('dir').addEventListener('change', function () {
+  document.getElementById('amountLabel').textContent = this.value === 'fwd' ? '不含税金额' : '含税金额';
+  calc();
+});
+document.getElementById('custom').addEventListener('input', calc);
+document.getElementById('amount').addEventListener('input', calc);
+document.getElementById('calc').addEventListener('click', calc);
+
+calc();
+window.ockSetSource && window.ockSetSource('税率预设参考中国现行增值税税率及部分国家 VAT 标准税率，仅供估算，实际以税务机关规定为准');
+</script>
+</body>
+</html>

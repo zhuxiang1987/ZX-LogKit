@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>利润计算器 — ZX-LogKit</title>
+<meta name="description" content="货代单票利润核算：多项成本汇总、毛利率、反推报价。">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div id="nav-mount"></div>
+
+<main class="tool-page">
+  <h1>利润计算器</h1>
+  <p class="sub">单票业务毛利/净利核算，并反推达成目标毛利所需的报价</p>
+
+  <div class="tool-panel">
+    <div class="form-row">
+      <div><label>客户报价收入</label><input type="number" id="rev" value="12000" step="0.01"></div>
+      <div><label>干线运费成本</label><input type="number" id="c1" value="8500" step="0.01"></div>
+      <div><label>报关动卫检费</label><input type="number" id="c2" value="300" step="0.01"></div>
+      <div><label>仓储装卸费</label><input type="number" id="c3" value="450" step="0.01"></div>
+      <div><label>国内提送货费</label><input type="number" id="c4" value="600" step="0.01"></div>
+      <div><label>保险费</label><input type="number" id="c5" value="120" step="0.01"></div>
+      <div><label>其他费用</label><input type="number" id="c6" value="180" step="0.01"></div>
+      <div><label>目标毛利率 (%)</label><input type="number" id="target" value="18" step="0.1"></div>
+    </div>
+    <button class="btn" id="calc">计算</button>
+
+    <div class="result-box show">
+      <div class="r-main" id="rMain"></div>
+      <div class="r-detail" id="rDetail"></div>
+    </div>
+
+    <div class="data-source-note"></div>
+  </div>
+</main>
+
+<div id="footer-mount"></div>
+<script src="../assets/js/nav.js"></script>
+<script>
+function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calc() {
+  var rev = num('rev');
+  var costs = { 干线运费: num('c1'), 报关报检: num('c2'), 仓储装卸: num('c3'), 提送货: num('c4'), 保险: num('c5'), 其他: num('c6') };
+  var total = 0, detail = [];
+  for (var k in costs) { total += costs[k]; detail.push(k + '：' + costs[k].toFixed(2)); }
+
+  var gross = rev - total;
+  var margin = rev > 0 ? (gross / rev * 100) : 0;
+  var markup = total > 0 ? (gross / total * 100) : 0;
+  var t = num('target');
+  var needPrice = t >= 100 ? Infinity : (t < 0 ? 0 : total / (1 - t / 100));
+
+  document.getElementById('rMain').textContent =
+    '毛利 ' + gross.toFixed(2) + ' · 毛利率 ' + margin.toFixed(2) + '%';
+  document.getElementById('rDetail').innerHTML =
+    '成本合计：' + total.toFixed(2) + '<br>' +
+    detail.join('<br>') + '<br>' +
+    '成本加成率：' + markup.toFixed(2) + '%<br>' +
+    '<span style="color:#0f4c81">要达到 ' + t.toFixed(1) + '% 毛利率，报价需 ≥ ' +
+    (isFinite(needPrice) ? needPrice.toFixed(2) : '无法达成') + '</span>';
+}
+
+['rev', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'target'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', calc);
+});
+document.getElementById('calc').addEventListener('click', calc);
+calc();
+window.ockSetSource && window.ockSetSource('成本科目为国际货代常见项，可按实际账单调整；纯离线计算，数据不上传');
+</script>
+</body>
+</html>

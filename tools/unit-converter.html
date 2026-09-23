@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单位换算器 — ZX-LogKit</title>
+<meta name="description" content="重量/长度/体积/温度/重量换算，物流常用单位一键换算。">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div id="nav-mount"></div>
+
+<main class="tool-page">
+  <h1>单位换算器</h1>
+  <p class="sub">重量 · 长度 · 体积 · 温度，输入任意单位即时换算全部结果</p>
+
+  <div class="tool-panel">
+    <div class="form-row">
+      <div>
+        <label>换算类别</label>
+        <select id="cat">
+          <option value="weight">重量 Weight</option>
+          <option value="length">长度 Length</option>
+          <option value="volume">体积 Volume</option>
+          <option value="temp">温度 Temperature</option>
+        </select>
+      </div>
+      <div>
+        <label>原单位</label>
+        <select id="from"></select>
+      </div>
+      <div>
+        <label>数值</label>
+        <input type="number" id="val" value="100" step="any">
+      </div>
+    </div>
+
+    <div class="result-box show">
+      <div class="r-main" id="rMain">100 千克(kg) =</div>
+      <div class="r-detail" id="rDetail"></div>
+    </div>
+
+    <div class="data-source-note"></div>
+  </div>
+</main>
+
+<div id="footer-mount"></div>
+<script src="../assets/js/nav.js"></script>
+<script>
+// 换算表：以各单位的基准值（该单位等于多少基准单位）表示，全部离线内置
+var CATS = {
+  weight: {
+    base: 'kg',
+    units: [
+      ['kg', '千克', 1],
+      ['g', '克', 0.001],
+      ['t', '吨', 1000],
+      ['lb', '磅', 0.45359237],
+      ['oz', '盎司', 0.028349523]
+    ]
+  },
+  length: {
+    base: 'm',
+    units: [
+      ['m', '米', 1],
+      ['cm', '厘米', 0.01],
+      ['mm', '毫米', 0.001],
+      ['in', '英寸', 0.0254],
+      ['ft', '英尺', 0.3048]
+    ]
+  },
+  volume: {
+    base: 'm3',
+    units: [
+      ['m3', '立方米', 1],
+      ['L', '升', 0.001],
+      ['ft3', '立方英尺', 0.0283168],
+      ['in3', '立方英寸', 0.0000163871],
+      ['gal', '美加仑', 0.00378541]
+    ]
+  },
+  temp: {
+    base: 'C',
+    units: [['C', '摄氏度', null], ['F', '华氏度', null], ['K', '开尔文', null]]
+  }
+};
+
+function fill(src, dst) {
+  options = CATS[dst].units.map(function (u, i) {
+    return '<option value="' + u[0] + '"' + (i === 0 ? ' selected' : '') + '>' + u[1] + ' (' + u[0] + ')</option>';
+  }).join('');
+  document.getElementById(src).innerHTML = options;
+}
+
+function convert() {
+  var cat = document.getElementById('cat').value;
+  var from = document.getElementById('from').value;
+  var v = parseFloat(document.getElementById('val').value);
+  if (isNaN(v)) { document.getElementById('rDetail').textContent = '请输入有效数值'; return; }
+
+  var meta = CATS[cat], lines = [], label = '';
+
+  if (cat === 'temp') {
+    // 温度换算：先统一换算到摄氏度
+    var c = from === 'C' ? v : (from === 'F' ? (v - 32) * 5 / 9 : v - 273.15);
+    var vals = { C: c, F: c * 9 / 5 + 32, K: c + 273.15 };
+    label = v + ' ' + from + ' =';
+    meta.units.forEach(function (u) {
+      if (u[0] !== from) lines.push(u[1] + '：' + vals[u[0]].toFixed(2) + ' ' + u[0]);
+    });
+  } else {
+    var factor = meta.units.filter(function (u) { return u[0] === from; })[0][2];
+    var baseVal = v * factor;
+    var fromLabel = meta.units.filter(function (u) { return u[0] === from; })[0][1];
+    label = v + ' ' + fromLabel + '(' + from + ') =';
+    meta.units.forEach(function (u) {
+      if (u[0] !== from) {
+        var r = baseVal / u[2];
+        lines.push(u[1] + '：' + r.toFixed(r < 0.01 ? 6 : 4) + ' ' + u[0]);
+      }
+    });
+  }
+
+  document.getElementById('rMain').textContent = label;
+  document.getElementById('rDetail').innerHTML = lines.join('<br>');
+}
+
+document.getElementById('cat').addEventListener('change', function () {
+  fill('from', this.value);
+  convert();
+});
+document.getElementById('from').addEventListener('change', convert);
+document.getElementById('val').addEventListener('input', convert);
+
+fill('from', 'weight');
+convert();
+
+window.ockSetSource && window.ockSetSource('换算系数采用国际标准定义（1 lb = 0.45359237 kg、1 in = 0.0254 m 等），离线内置无需联网');
+</script>
+</body>
+</html>

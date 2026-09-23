@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>滞港费 / 滞箱费计算 — ZX-LogKit</title>
+<meta name="description" content="集装箱免箱期与超期滞箱费阶梯计算，滞港费、滞箱费一表算清。">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div id="nav-mount"></div>
+
+<main class="tool-page">
+  <h1>滞港费 / 滞箱费计算</h1>
+  <p class="sub">按船公司常见阶梯费率，自动分段计算超期天数与费用</p>
+
+  <div class="tool-panel">
+    <div class="form-row">
+      <div>
+        <label>箱型</label>
+        <select id="size">
+          <option value="20">20GP 标准柜</option>
+          <option value="40">40GP 标准柜</option>
+          <option value="40hq">40HQ 高柜</option>
+          <option value="45">45HQ 高柜</option>
+        </select>
+      </div>
+      <div><label>免箱期（天）</label><input type="number" id="free" value="7" step="1"></div>
+      <div><label>实际用箱（天）</label><input type="number" id="days" value="16" step="1"></div>
+      <div><label>箱数</label><input type="number" id="qty" value="1" step="1"></div>
+      <div><label>额外滞港费（每日/箱）</label><input type="number" id="storage" value="0" step="1"></div>
+      <div><label>滞港超期天数</label><input type="number" id="sdays" value="0" step="1"></div>
+    </div>
+    <button class="btn" id="calc">计算</button>
+
+    <div class="result-box show">
+      <div class="r-main" id="rMain"></div>
+      <div class="r-detail" id="rDetail"></div>
+    </div>
+
+    <div class="data-source-note"></div>
+  </div>
+</main>
+
+<div id="footer-mount"></div>
+<script src="../assets/js/nav.js"></script>
+<script>
+// 阶梯费率（人民币/天/箱）：[起始超期天(含), 截止天(含), 单价]，null 表示不限
+// 数值为常见船公司公开区间中位值，仅作估算参考
+var TIERS = {
+  '20': [[1, 7, 80], [8, 14, 150], [15, null, 300]],
+  '40': [[1, 7, 130], [8, 14, 250], [15, null, 480]],
+  '40hq': [[1, 7, 150], [8, 14, 280], [15, null, 520]],
+  '45': [[1, 7, 180], [8, 14, 330], [15, null, 600]]
+};
+
+function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calc() {
+  var size = document.getElementById('size').value;
+  var free = num('free'), days = num('days'), qty = num('qty');
+  var rate = num('storage'), sdays = num('sdays');
+  var over = Math.max(0, days - free);
+
+  if (over === 0) {
+    document.getElementById('rMain').textContent = '未超期，免箱期内';
+    document.getElementById('rDetail').innerHTML =
+      '用箱 ' + days + ' 天 ≤ 免箱期 ' + free + ' 天，无需支付滞箱费<br>' +
+      (sdays > 0 ? '但滞港超期 ' + sdays + ' 天：滞港费 ' + (sdays * rate * qty).toFixed(2) : '');
+    return;
+  }
+
+  var tiers = TIERS[size], total = 0, lines = [], remain = over;
+  tiers.forEach(function (t) {
+    if (remain <= 0) return;
+    var lo = t[0], hi = t[1], price = t[2];
+    var span = Math.min(remain, hi === null ? remain : hi - lo + 1);
+    if (span <= 0) return;
+    var sub = span * price * qty;
+    total += sub;
+    lines.push('第 ' + lo + '–' + (hi === null ? '及以上' : hi) + ' 天：' + span + ' 天 × ' + price + ' = ' + sub.toFixed(2));
+    remain -= span;
+  });
+
+  var storageTotal = sdays * rate * qty;
+  document.getElementById('rMain').textContent =
+    '超期 ' + over + ' 天 · 滞箱费 ' + total.toFixed(2) + (storageTotal ? ' · 滞港费 ' + storageTotal.toFixed(2) : '');
+  document.getElementById('rDetail').innerHTML =
+    '箱型：' + document.getElementById('size').selectedOptions[0].text + ' × ' + qty + ' 箱<br>' +
+    '免箱期 ' + free + ' 天 / 用箱 ' + days + ' 天<br><br>' +
+    lines.join('<br>') +
+    (storageTotal ? '<br>滞港费：' + sdays + ' 天 × ' + rate + ' × ' + qty + ' = ' + storageTotal.toFixed(2) : '') +
+    '<br><br><b>合计：' + (total + storageTotal).toFixed(2) + '</b>';
+}
+
+['size', 'free', 'days', 'qty', 'storage', 'sdays'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', calc);
+  document.getElementById(id).addEventListener('change', calc);
+});
+document.getElementById('calc').addEventListener('click', calc);
+calc();
+window.ockSetSource && window.ockSetSource('费率取自主流船公司公开费率表的常见区间中位值，仅供估算；实际以船公司/码头当期费率为准');
+</script>
+</body>
+</html>

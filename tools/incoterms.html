@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incoterms® 2020 参考 — ZX-LogKit</title>
+<meta name="description" content="11个国际贸易术语详解：买卖双方责任划分、风险转移点、适用运输方式。">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<div id="nav-mount"></div>
+
+<main class="tool-page">
+  <h1>Incoterms® 2020 参考</h1>
+  <p class="sub">点选术语查看买卖双方责任划分、风险转移点与适用运输方式</p>
+
+  <div class="tool-panel">
+    <div class="form-row">
+      <div>
+        <label>贸易术语</label>
+        <select id="term"></select>
+      </div>
+      <div>
+        <label>按运输方式筛选</label>
+        <select id="filter">
+          <option value="all">全部</option>
+          <option value="sea">仅海运/内河</option>
+          <option value="any">任意运输方式</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="result-box show">
+      <div class="r-main" id="rMain"></div>
+      <div class="r-detail" id="rDetail"></div>
+    </div>
+
+    <div class="data-source-note"></div>
+  </div>
+</main>
+
+<div id="footer-mount"></div>
+<script src="../assets/js/nav.js"></script>
+<script>
+// Incoterms 2020 静态知识库（离线内置，基于国际商会官方规则整理）
+var TERMS = [
+  { code: 'EXW', name: '工厂交货 Ex Works', mode: 'any', risk: '出口国卖方所在地（工厂/仓库）货交买方处置时',
+    sell: ['将货物置于买方处置之下即可', '提供商业发票及相应电子单据', '协助取得出口单证（费用由买方承担）'],
+    buy:  ['自费安排提货及全部运输', '办理出口与进口清关', '承担所有运费、保险费及风险'],
+    note: '卖方责任最小，买方几乎承担全部费用与风险。若买方无法办理出口清关，不宜用此术语。' },
+  { code: 'FCA', name: '货交承运人 Free Carrier', mode: 'any', risk: '出口国指定地点货交买方指定承运人时',
+    sell: ['办理出口清关', '将货物交至买方指定承运人', '提供交货凭证'],
+    buy:  ['订立运输合同并支付运费', '承担交货后的一切风险', '办理进口清关'],
+    note: '适用于任何运输方式（含多式联运），是现代贸易中最常用的F组术语。' },
+  { code: 'FAS', name: '船边交货 Free Alongside Ship', mode: 'sea', risk: '装运港船边（如码头吊钩下）交货时',
+    sell: ['办理出口清关', '将货物运至装运港买方指定船边'],
+    buy:  ['订立海运合同并支付海运费', '承担船边交货后的风险', '办理装船及后续事宜'],
+    note: '仅适用于海运或内河运输，THC 等码头操作费通常在 E 的组合下另行约定。' },
+  { code: 'FOB', name: '装运港船上交货 Free On Board', mode: 'sea', risk: '货物在装运港装上船（2010起为"装上船"而非"越过船舷"）',
+    sell: ['办理出口清关', '承担货物装上船前的一切费用与风险', '提供已装船提单与商业发票'],
+    buy:  ['租船订舱并支付运费', '承担货物装上船后的风险', '办理进口清关与进口税费'],
+    note: '海运集装箱货物建议用 FCA — FOB 下卖方可能额外承担至装船的码头费用。' },
+  { code: 'CFR', name: '成本加运费 Cost and Freight', mode: 'sea', risk: '装运港装上船时（风险划分同FOB，但运费由卖方付）',
+    sell: ['订立并支付至目的港的海运费', '办理出口清关', '承担装船前风险'],
+    buy:  ['承担装船后的运输风险', '自行投保货物运输险', '办理进口清关'],
+    note: '卖方付运费但风险在装船时转移 —— 买方务必自行投保，保险理赔可能有纠纷。' },
+  { code: 'CIF', name: '成本、保险费加运费 Cost Insurance Freight', mode: 'sea', risk: '装运港装上船时（与CFR一致）',
+    sell: ['支付海运费', '办理最低险别（协会货物条款C）货运保险', '办理出口清关'],
+    buy:  ['承担装船后的其余风险', '如需更高险别需另行约定', '办理进口清关'],
+    note: '卖方只需投保最低险别，货物出险往往保障不足，建议买方追加投保。' },
+  { code: 'CPT', name: '运费付至 Carriage Paid To', mode: 'any', risk: '将货物交付第一承运人时',
+    sell: ['支付至指定目的地的运费', '办理出口清关', '承担交货给承运人前的风险'],
+    buy:  ['承担交货后的一切风险', '自行投保', '办理进口清关'],
+    note: 'CFR 的多式联运版本，适用于空运、铁路、公路及多式联运。' },
+  { code: 'CIP', name: '运费、保险费付至 Carriage Insurance Paid To', mode: 'any', risk: '将货物交付第一承运人时',
+    sell: ['支付至目的地的运费', '办理货物保险（Incoterms2020 要求提高到协会货物条款A）', '办理出口清关'],
+    buy:  ['承担交货后的其余风险', '办理进口清关及进口税费'],
+    note: '2020 版最大的改动之一：CIP 的保险等级由 C 条款提升到 A 条款（最高保障）。' },
+  { code: 'DAP', name: '目的地交货 Delivered At Place', mode: 'any', risk: '目的地指定地点、卸货前交由买方处置时',
+    sell: ['承担至目的地的一切运费与风险', '办理出口清关', '协助（非义务）进口清关'],
+    buy:  ['承担卸货费（除非另有约定）', '办理进口清关并支付进口税费'],
+    note: '卖方承担运输全程风险，但不负责进口清关与税费。' },
+  { code: 'DPU', name: '目的地卸货后交货 Delivered At Place Unloaded', mode: 'any', risk: '目的地卸货完成时',
+    sell: ['承担运费至目的地并负责卸货', '承担卸货前的风险', '办理出口清关'],
+    buy:  ['办理进口清关与税费', '承担卸货后风险'],
+    note: '2020 版新名称，替代 2010 的 DAT，是唯一要求卖方卸货的术语。' },
+  { code: 'DDP', name: '完税后交货 Delivered Duty Paid', mode: 'any', risk: '目的地指定地点交由买方处置时',
+    sell: ['承担全部运费、风险及费用', '办理出口与进口清关', '支付进口关税与税费'],
+    buy:  ['仅需卸货提走货物（除非另有约定）', '承担交货后的风险'],
+    note: '卖方责任最大。若卖方无法办理进口清关或取得进口许可，不宜使用 DDP。' }
+];
+
+function fill(filter) {
+  var list = TERMS.filter(function (t) { return filter === 'all' || t.mode === filter; });
+  document.getElementById('term').innerHTML = list.map(function (t) {
+    return '<option value="' + t.code + '">' + t.code + ' — ' + t.name + '</option>';
+  }).join('');
+  return list;
+}
+
+function render() {
+  var code = document.getElementById('term').value;
+  var t = TERMS.filter(function (x) { return x.code === code; })[0];
+  if (!t) return;
+  document.getElementById('rMain').textContent = t.code + ' · ' + t.name;
+  document.getElementById('rDetail').innerHTML =
+    '<b>适用：</b>' + (t.mode === 'sea' ? '海运及内河运输' : '任意运输方式（含多式联运）') + '<br>' +
+    '<b>风险转移：</b>' + t.risk + '<br><br>' +
+    '<b>卖方义务</b><br>' + t.sell.map(function (s) { return '· ' + s; }).join('<br>') + '<br><br>' +
+    '<b>买方义务</b><br>' + t.buy.map(function (b) { return '· ' + b; }).join('<br>') + '<br><br>' +
+    '<span style="color:#64748b">提示：' + t.note + '</span>';
+}
+
+document.getElementById('filter').addEventListener('change', function () { fill(this.value); render(); });
+document.getElementById('term').addEventListener('change', render);
+fill('all'); render();
+window.ockSetSource && window.ockSetSource('依据国际商会 Incoterms® 2020 通则整理，含 CIP 保险等级提升、DPU 更名等规则变更');
+</script>
+</body>
+</html>
